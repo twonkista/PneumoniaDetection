@@ -199,7 +199,7 @@ def train_model(model, criterion, optimizer, epochs, device="cpu"):
             epoch_loss = running_loss/size[phase]
             epoch_acc = running_corrects.double()/size[phase]
 
-            print("{} Loss: {.:4f} Acc: {.:4f}".format(phase, epoch_loss, epoch_acc))
+            #print("{} Loss: {.:4f} Acc: {.:4f}".format(phase, epoch_loss, epoch_acc))
 
             if phase == "val" and epoch_acc > best_acc:
                 best_acc = epoch_acc
