@@ -58,7 +58,7 @@ train_paths, valid_paths, train_labels, valid_labels = train_test_split(train_pa
     #ax2.imshow(Image.open(path_random_abnormal).convert("LA"))
     #ax2.set_title("Pneumonia X-Ray")
 
-imShowRandom()
+#imShowRandom()
 
 class ModifySet(Dataset):
     def __init__(self,paths,labels, transform=None):
