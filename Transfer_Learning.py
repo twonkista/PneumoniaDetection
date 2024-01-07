@@ -36,27 +36,27 @@ test_paths = test_N + test_P
 train_labels = [0] * len(train_N) + [1] * len(train_P)
 test_labels = [0] * len(test_N) + [1] * len(test_P)
 
-print(len(train_paths),len(train_labels))
-print(len(test_paths),len(test_labels))
+#print(len(train_paths),len(train_labels))
+#print(len(test_paths),len(test_labels))
 
 
 train_paths, valid_paths, train_labels, valid_labels = train_test_split(train_paths,
                                                                         train_labels,
                                                                         stratify=train_labels)
 
-def imShowRandom():
-    path_random_normal = random.choice(train_N)
-    path_random_abnormal = random.choice(train_P)
+#def imShowRandom():
+    #path_random_normal = random.choice(train_N)
+    #path_random_abnormal = random.choice(train_P)
 
-    fig = plt.figure(figsize=(10,10))
+    #fig = plt.figure(figsize=(10,10))
 
-    ax1 = plt.subplot(1,2,1)
-    ax1.imshow(Image.open(path_random_normal).convert("LA"))
-    ax1.set_title("Normal X-Ray")
+    #ax1 = plt.subplot(1,2,1)
+    #ax1.imshow(Image.open(path_random_normal).convert("LA"))
+    #ax1.set_title("Normal X-Ray")
 
-    ax2 = plt.subplot(1,2,2)
-    ax2.imshow(Image.open(path_random_abnormal).convert("LA"))
-    ax2.set_title("Pneumonia X-Ray")
+    #ax2 = plt.subplot(1,2,2)
+    #ax2.imshow(Image.open(path_random_abnormal).convert("LA"))
+    #ax2.set_title("Pneumonia X-Ray")
 
 imShowRandom()
 
@@ -153,6 +153,31 @@ criterion = nn.BCEWithLogitsLoss()
 optimizer = Adam(model.parameters(),lr = 3e-3)
 
 
+model = PneuModel(pretrained = True)
+epochs = 5
+b_size = 16
+
+train_dl = DataLoader(train_ds, batch_size=b_size,num_workers=5,shuffle=True)
+val_dl = DataLoader(val_ds, batch_size = b_size, num_workers=5, shuffle = False)
+
+dataloaders = {
+    'train': train_dl,
+    'val': val_dl
+}
+
+logging = {
+    'train': len(dataloaders["train"])//10,
+    'val': len(dataloaders["val"])//10
+}
+
+size = {
+    'train': len(train_ds),
+    'val': len(val_ds)
+}
+
+criterion = nn.BCEWithLogitsLoss()
+optimizer = Adam(model.parameters(),lr = 3e-3)
+
 def train_model(model, criterion, optimizer, epochs, device="cpu"):
 
     start = time.time()
@@ -170,9 +195,9 @@ def train_model(model, criterion, optimizer, epochs, device="cpu"):
             running_loss = 0.0
             running_corrects = 0
 
-            for i, (inputs, labels) in tqdm(enumerate(dataloaders[phase]),
-                                            leave=False,
-                                            total = len(dataloaders[phase]) ):
+            for i, (inputs, labels) in tqdm(enumerate(dataloaders[phase]), leave=False, total = len(dataloaders[phase])):
+                device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
@@ -180,26 +205,26 @@ def train_model(model, criterion, optimizer, epochs, device="cpu"):
 
                 with torch.set_grad_enabled(phase == "train"):
                     outputs = model(inputs)
-                    preds = outputs.sigmoids()
+                    preds = outputs.sigmoid() > 0.5
                     loss = criterion(outputs, labels.float())
 
                     if phase == "train":
                         loss.backward()
                         optimizer.step()
 
-                running_loss += loss.item() * inputs.suze(0)
+                running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
                 if(i % logging[phase] ==0) & (i > 0):
                     avg_loss = running_loss/ ((i+1)*16)
                     avg_corrects = running_corrects/ ((i+1)*16)
 
-                    print(f"[{phase}]: {epoch+1}/{epoch} | loss: {avg_loss} | acc: {avg_corrects}")
+                    print(f"[{phase}]: {epoch+1}/{epochs} | loss: {avg_loss} | acc: {avg_corrects}")
 
             epoch_loss = running_loss/size[phase]
             epoch_acc = running_corrects.double()/size[phase]
 
-            #print("{} Loss: {.:4f} Acc: {.:4f}".format(phase, epoch_loss, epoch_acc))
+            print(f'Loss: {epoch_loss} Acc: {epoch_acc}')
 
             if phase == "val" and epoch_acc > best_acc:
                 best_acc = epoch_acc
@@ -209,6 +234,7 @@ def train_model(model, criterion, optimizer, epochs, device="cpu"):
     time_pass = time.time()-start
     print("Training took {} seconds".format(time_pass))
     model.state_dict(best_model_wts)
+
     return model
 
 model = train_model(model, criterion, optimizer, epochs)
